@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="es">
+<head>
+{% load static %} 
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Juego | {{ level_name }}</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+body{
+    min-height:100vh;
+    margin:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:"Segoe UI",sans-serif;
+    color:#EAF2FF;
+    background:
+    radial-gradient(circle at 20% 10%, rgba(255,44,223,.25), transparent 45%),
+    radial-gradient(circle at 80% 15%, rgba(0,245,255,.25), transparent 45%),
+    linear-gradient(180deg,#050714 0%,#070A14 100%);
+    padding:24px;
+}
+
+.vc-card{
+    width:100%;
+    max-width:760px;
+    padding:22px;
+    border-radius:18px;
+    background:rgba(10,10,20,0.55);
+    backdrop-filter:blur(12px);
+    border:1px solid rgba(255,255,255,0.14);
+}
+
+.grid{
+    display:grid;
+    gap:12px;
+    margin-top:15px;
+}
+
+.card-tile{
+    aspect-ratio:1/1;
+    border-radius:14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    font-size:38px;
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.12);
+}
+
+.revealed{ background:rgba(0,245,255,.1); }
+.matched{ background:rgba(0,255,159,.15); cursor:default; }
+
+.pill{
+    padding:8px 12px;
+    border-radius:999px;
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.12);
+    font-weight:700;
+}
+
+.btn-vc{
+    border:none;
+    font-weight:900;
+    color:#071018;
+    background:linear-gradient(90deg,#00F5FF,#FF2CDF);
+}
+</style>
+</head>
+
+<body>
+
+
+<audio id="audioControl"></audio>
+
+<div class="vc-card">
+    <div class="d-flex justify-content-between mb-3">
+        <div>
+            <h4>🎮 {{ level_name }}</h4>
+            <small>Jugador: {{ request.user.username }}</small>
+        </div>
+
+        <div class="d-flex gap-2">
+            <div class="pill">⏱️ <span id="timeLeft">0</span>s</div>
+            <div class="pill">❤️ <span id="attemptsLeft">0</span></div>
+            <a class="btn btn-sm btn-outline-light" href="{% url 'select_level' %}">Volver</a>
+        </div>
+    </div>
+
+    <button id="startBtn" class="btn btn-vc w-100 mb-3">INICIAR PARTIDA</button>
+
+    <div class="grid" id="grid"></div>
+    <div id="status" class="mt-3 text-center"></div>
+</div>
+
+<script>
+
+
+const audio = document.getElementById("audioControl");
+
+const sounds = {
+    basico: {
+        bg: "{% static 'sounds/nivel1.mp3' %}",
+        win: "{% static 'sounds/win1.mp3' %}",
+        lose: "{% static 'sounds/lose1.mp3' %}"
+    },
+    medio: {
+        bg: "{% static 'sounds/nivel2.mp3' %}",
+        win: "{% static 'sounds/win2.mp3' %}",
+        lose: "{% static 'sounds/lose2.mp3' %}"
+    },
+    avanzado: {
+        bg: "{% static 'sounds/nivel3.mp3' %}",
+        win: "{% static 'sounds/win3.mp3' %}",
+        lose: "{% static 'sounds/lose3.mp3' %}"
+    }
+};
+
+function getNivel(){
+    const n = "{{ level_name }}".toLowerCase();
+    if(n.includes("basico")) return "basico";
+    if(n.includes("medio")) return "medio";
+    return "avanzado";
+}
+
+function playAudio(src, loop=false){
+    audio.pause();
+    audio.currentTime = 0;
+    audio.src = src;
+    audio.loop = loop;
+    audio.volume = 0.3;
+    audio.play();
+}
+
+window.GAME_CONFIG = {
+    level:"{{ level_name }}",
+    timeLimit:Number("{{ time_limit|default:60 }}"),
+    gridSize:Number("{{ grid_size|default:4 }}")
+};
+
+const grid = document.getElementById("grid");
+const timeEl = document.getElementById("timeLeft");
+const attemptsEl = document.getElementById("attemptsLeft");
+const statusEl = document.getElementById("status");
+const startBtn = document.getElementById("startBtn");
+
+const CFG = window.GAME_CONFIG;
+const ALL_EMOJIS = ["🍉","🍒","🍋","🍇","🍓","🍑","🍍","🥝","🍎","🥭","🍌","🍐","🥥","🍊","🍈","🍏","🥕","🌽","🍆","🥔"];
+
+let EMOJIS = [], deck = [], first=null, second=null, lock=false, matches=0, attempts=0, time=0, timer=null;
+
+
+function setupLevel(){
+    if(CFG.gridSize==4) EMOJIS=ALL_EMOJIS.slice(0,8);
+    else if(CFG.gridSize==5) EMOJIS=ALL_EMOJIS.slice(0,10);
+    else EMOJIS=ALL_EMOJIS.slice(0,18);
+
+    if(CFG.level.toLowerCase().includes("avanzado")) attempts=8;
+    else if(CFG.level.toLowerCase().includes("medio")) attempts=6;
+    else attempts=5;
+}
+
+function shuffle(arr){
+    return arr.sort(()=>Math.random()-0.5);
+}
+
+function initDeck(){
+    deck = shuffle([...EMOJIS,...EMOJIS].map((e,i)=>({id:i,emoji:e,matched:false})));
+}
+
+function render(showAll=false){
+    grid.innerHTML="";
+    grid.style.gridTemplateColumns=`repeat(${CFG.gridSize},1fr)`;
+
+    deck.forEach((card,i)=>{
+        const btn=document.createElement("button");
+        btn.className="card-tile";
+        btn.textContent = showAll ? card.emoji : "🂠";
+        if(showAll) btn.classList.add("revealed");
+        btn.onclick=()=>flip(i,btn);
+        grid.appendChild(btn);
+    });
+}
+
+function updateHUD(){
+    timeEl.textContent=time;
+    attemptsEl.textContent=attempts;
+}
+
+function startGame(){
+
+    const lvl = getNivel();
+    playAudio(sounds[lvl].bg, true);
+
+    setupLevel();
+    initDeck();
+    render(true);
+
+    matches=0;
+    first=null;
+    second=null;
+    time=CFG.timeLimit;
+    updateHUD();
+    statusEl.textContent="🎮 Observa las cartas";
+
+    clearInterval(timer);
+    setTimeout(()=>{
+        render(false);
+        statusEl.textContent="🎮 Encuentra las parejas";
+        timer=setInterval(()=>{
+            time--;
+            updateHUD();
+            if(time<=0) endGame(false,"⏰ Tiempo agotado");
+        },1000);
+    },4000);
+}
+
+function flip(index,btn){
+    if(lock || deck[index].matched || attempts<=0) return;
+
+    btn.textContent=deck[index].emoji;
+
+    if(!first){
+        first={index,btn};
+        return;
+    }
+
+    second={index,btn};
+    lock=true;
+
+    if(deck[first.index].emoji===deck[second.index].emoji){
+        deck[first.index].matched=true;
+        deck[second.index].matched=true;
+
+        matches++;
+        attempts++;
+        updateHUD();
+        resetTurn();
+
+        if(matches===EMOJIS.length){
+            endGame(true,"🏆 Ganaste");
+        }
+    } else {
+        attempts--;
+        updateHUD();
+        setTimeout(()=>{
+            btn.textContent="🂠";
+            resetTurn();
+
+            if(attempts<=0){
+                endGame(false,"💀 Sin intentos");
+            }
+        },700);
+    }
+}
+
+function resetTurn(){
+    first=null;
+    second=null;
+    lock=false;
+}
+
+function endGame(win,msg){
+
+    clearInterval(timer);
+    statusEl.textContent=msg;
+    startBtn.textContent="JUGAR DE NUEVO";
+
+    const lvl = getNivel();
+
+    if(win){
+        playAudio(sounds[lvl].win);
+    } else {
+        playAudio(sounds[lvl].lose);
+    }
+}
+
+startBtn.onclick = ()=>{
+    startGame();
+};
+
+updateHUD();
+statusEl.textContent="Presiona INICIAR PARTIDA";
+
+</script>
+
+</body>
+</html>

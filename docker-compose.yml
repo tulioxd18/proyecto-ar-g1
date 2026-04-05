@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  web:
+    build: ./ProyectoMemmoryGame/proyectoAR_Computadoras/proyecto/memory_project
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./ProyectoMemmoryGame/proyectoAR_Computadoras/proyecto/memory_project:/app
+    working_dir: /app
+    command: python manage.py runserver 0.0.0.0:8000
+    environment:
+      - DJANGO_SETTINGS_MODULE=memory_project.settings
