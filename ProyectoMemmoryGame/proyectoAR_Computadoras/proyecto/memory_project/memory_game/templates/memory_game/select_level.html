@@ -122,23 +122,28 @@
 
   <script>
   const music = document.getElementById("menuMusic");
-music.volume = 0.3;
+  music.volume = 0.3;
 
+  let musicStarted = false;
 
-let musicStarted = false;
+  // Iniciar música en el primer click
+  document.body.addEventListener('click', () => {
+      if(!musicStarted){
+          music.play().catch(e => console.log("Autoplay bloqueado por navegador:", e));
+          musicStarted = true;
+      }
+  });
 
-document.body.addEventListener('click', () => {
-    if(!musicStarted){
-        music.play().catch(e => console.log("Bloqueado:", e));
-        musicStarted = true;
-    }
-});
+  // Intentar autoplay (para navegadores que lo permiten)
+  window.addEventListener('load', () => {
+      music.play().catch(e => console.log("Autoplay no permitido:", e));
+  });
 
-
-window.addEventListener("beforeunload", () => {
-    music.pause();
-    music.currentTime = 0;
-});
+  // Pausar cuando salgas de la página
+  window.addEventListener("beforeunload", () => {
+      music.pause();
+      music.currentTime = 0;
+  });
   </script>
 
   <div class="panel">
