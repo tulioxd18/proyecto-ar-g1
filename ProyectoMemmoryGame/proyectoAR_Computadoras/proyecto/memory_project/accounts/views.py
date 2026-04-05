@@ -16,12 +16,19 @@ def login_view(request):
         username = request.POST.get("username", "").strip()
         password = request.POST.get("password", "").strip()
 
+        # Debug: verificar que el usuario existe
+        from django.contrib.auth.models import User
+        user_exists = User.objects.filter(username=username).exists()
+        
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
             return redirect("select_level")
         else:
-            messages.error(request, "Usuario o contraseña incorrectos.")
+            if user_exists:
+                messages.error(request, "Contraseña incorrecta.")
+            else:
+                messages.error(request, "Usuario no existe.")
 
     return render(request, "accounts/login.html")
 
