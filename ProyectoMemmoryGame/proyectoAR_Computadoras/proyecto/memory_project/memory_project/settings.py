@@ -27,6 +27,9 @@ DEBUG = False
 
 ALLOWED_HOSTS = ['proyecto-ar-g1.onrender.com']
 
+# CSRF settings for production
+CSRF_TRUSTED_ORIGINS = ['https://proyecto-ar-g1.onrender.com']
+
 
 # Application definition
 
