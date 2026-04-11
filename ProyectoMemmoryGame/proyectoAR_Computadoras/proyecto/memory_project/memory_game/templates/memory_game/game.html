@@ -7,6 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Juego | {{ level_name }}</title>
 
+<meta name="csrf-token" content="{{ csrf_token }}">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
@@ -70,13 +71,85 @@ body{
     color:#071018;
     background:linear-gradient(90deg,#00F5FF,#FF2CDF);
 }
+
+.btn-nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.15);
+    color: #EAF2FF;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+}
+.btn-nav:hover {
+    background: rgba(0, 245, 255, 0.15);
+    border-color: #00F5FF;
+    color: #00F5FF;
+    box-shadow: 0 0 12px rgba(0, 245, 255, 0.4);
+    transform: translateY(-2px);
+}
+.btn-nav.pink:hover {
+    background: rgba(255, 44, 223, 0.15);
+    border-color: #FF2CDF;
+    color: #FF2CDF;
+    box-shadow: 0 0 12px rgba(255, 44, 223, 0.4);
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(5, 7, 20, 0.85);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+}
+.modal-overlay.show {
+    opacity: 1;
+    pointer-events: all;
+}
+.modal-content {
+    max-width: 400px;
+    width: 90%;
+    transform: scale(0.8);
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    text-align: center;
+}
+.modal-overlay.show .modal-content {
+    transform: scale(1);
+}
+.win-text { color: #00FF9F; text-shadow: 0 0 15px rgba(0,255,159,0.6); font-size: 32px; font-weight: 800; margin-bottom: 5px; }
+.lose-text { color: #FF2CDF; text-shadow: 0 0 15px rgba(255,44,223,0.6); font-size: 32px; font-weight: 800; margin-bottom: 5px; }
+.end-message { font-size: 16px; color: rgba(234, 242, 255, 0.8); margin-bottom: 25px; }
 </style>
 </head>
 
 <body>
 
 
-<audio id="audioControl"></audio>
+<audio id="bgAudio"></audio>
+<audio id="sfxAudio"></audio>
+
+<div id="endGameModal" class="modal-overlay">
+    <div class="modal-content vc-card">
+        <h2 id="endGameTitle"></h2>
+        <p id="endGameMessage" class="end-message"></p>
+        <div class="d-flex gap-2 mt-3 flex-column">
+            <button id="modalStartBtn" class="btn btn-vc w-100 py-3" style="font-size:16px; border-radius:12px;">🕹️ JUGAR DE NUEVO</button>
+            <a href="{% url 'select_level' %}" class="btn w-100 py-3" style="font-size:16px; border-radius:12px; text-decoration:none; background:rgba(255,255,255,0.1); color:#EAF2FF; border:1px solid rgba(255,255,255,0.2); font-weight:800; font-family:'Segoe UI',sans-serif; text-transform:uppercase;">↩️ Volver a inicio</a>
+        </div>
+    </div>
+</div>
 
 <div class="vc-card">
     <div class="d-flex justify-content-between mb-3">
@@ -85,14 +158,15 @@ body{
             <small>Jugador: {{ request.user.username }}</small>
         </div>
 
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 align-items-center">
             <div class="pill">⏱️ <span id="timeLeft">0</span>s</div>
             <div class="pill">❤️ <span id="attemptsLeft">0</span></div>
-            <a class="btn btn-sm btn-outline-light" href="{% url 'select_level' %}">Volver</a>
+            <a class="btn-nav" href="{% url 'profile' %}">👤 Perfil</a>
+            <a class="btn-nav pink" href="{% url 'select_level' %}">↩ Volver</a>
         </div>
     </div>
 
-    <button id="startBtn" class="btn btn-vc w-100 mb-3">INICIAR PARTIDA</button>
+    <button id="startBtn" class="btn btn-vc w-100 mb-3" style="display: none;">INICIAR PARTIDA</button>
 
     <div class="grid" id="grid"></div>
     <div id="status" class="mt-3 text-center"></div>
@@ -101,44 +175,60 @@ body{
 <script>
 
 
-const audio = document.getElementById("audioControl");
+const bgAudio = document.getElementById("bgAudio");
+const sfxAudio = document.getElementById("sfxAudio");
 
 const sounds = {
     basico: {
         bg: "{% static 'sounds/nivl1.mp3' %}",
-        win: "{% static 'sounds/win1.mp3' %}",
-        lose: "{% static 'sounds/lose1.mp3' %}"
+        win: "{% static 'sounds/ganar.mp3' %}",
+        lose: "{% static 'sounds/derrota.mp3' %}"
     },
     medio: {
         bg: "{% static 'sounds/nivel2.mp3' %}",
-        win: "{% static 'sounds/win2.mp3' %}",
-        lose: "{% static 'sounds/lose2.mp3' %}"
+        win: "{% static 'sounds/ganar.mp3' %}",
+        lose: "{% static 'sounds/derrota.mp3' %}"
     },
     avanzado: {
         bg: "{% static 'sounds/nivel3.mp3' %}",
-        win: "{% static 'sounds/win3.mp3' %}",
-        lose: "{% static 'sounds/lose3.mp3' %}"
+        win: "{% static 'sounds/ganar.mp3' %}",
+        lose: "{% static 'sounds/derrota.mp3' %}"
     }
 };
 
 function getNivel(){
     const n = "{{ level_name }}".toLowerCase();
-    if(n.includes("basico")) return "basico";
+    if(n.includes("básico") || n.includes("basico")) return "basico";
     if(n.includes("medio")) return "medio";
     return "avanzado";
 }
 
-function playAudio(src, loop=false){
-    audio.pause();
-    audio.currentTime = 0;
-    audio.src = src;
-    audio.loop = loop;
-    audio.volume = 0.3;
-    audio.play();
+function playAudio(src, isBg=true){
+    const targetAudio = isBg ? bgAudio : sfxAudio;
+    targetAudio.pause();
+    targetAudio.currentTime = 0;
+    targetAudio.src = src;
+    targetAudio.loop = isBg;
+    targetAudio.volume = isBg ? 0.3 : 0.8;
+
+    if (!isBg) {
+        bgAudio.pause();
+    } else {
+        sfxAudio.pause();
+        sfxAudio.currentTime = 0;
+    }
+
+    let playPromise = targetAudio.play();
+    if(playPromise !== undefined) {
+        playPromise.catch(error => {
+            console.log("Autoplay con sonido bloqueado por el navegador.");
+        });
+    }
 }
 
 window.GAME_CONFIG = {
     level:"{{ level_name }}",
+    attempts:Number("{{ attempts|default:6 }}"),
     timeLimit:Number("{{ time_limit|default:60 }}"),
     gridSize:Number("{{ grid_size|default:4 }}")
 };
@@ -152,17 +242,10 @@ const startBtn = document.getElementById("startBtn");
 const CFG = window.GAME_CONFIG;
 const ALL_EMOJIS = ["🍉","🍒","🍋","🍇","🍓","🍑","🍍","🥝","🍎","🥭","🍌","🍐","🥥","🍊","🍈","🍏","🥕","🌽","🍆","🥔"];
 
-let EMOJIS = [], deck = [], first=null, second=null, lock=false, matches=0, attempts=0, time=0, timer=null;
-
+let EMOJIS = [], deck = [], first=null, second=null, lock=false, matches=0, attempts=0, time=0, timer=null, observeTimeout=null, mismatchTimeout=null, isGameOver=false;
 
 function setupLevel(){
-    if(CFG.gridSize==4) EMOJIS=ALL_EMOJIS.slice(0,8);
-    else if(CFG.gridSize==5) EMOJIS=ALL_EMOJIS.slice(0,10);
-    else EMOJIS=ALL_EMOJIS.slice(0,18);
-
-    if(CFG.level.toLowerCase().includes("avanzado")) attempts=8;
-    else if(CFG.level.toLowerCase().includes("medio")) attempts=6;
-    else attempts=5;
+    EMOJIS = ALL_EMOJIS.slice(0, 8);
 }
 
 function shuffle(arr){
@@ -193,11 +276,13 @@ function updateHUD(){
 }
 
 function startGame(){
+    startBtn.style.display = "none";
 
     const lvl = getNivel();
     playAudio(sounds[lvl].bg, true);
 
     setupLevel();
+    attempts = CFG.attempts;
     initDeck();
     render(true);
 
@@ -205,14 +290,21 @@ function startGame(){
     first=null;
     second=null;
     time=CFG.timeLimit;
+    isGameOver = false;
     updateHUD();
     statusEl.textContent="🎮 Observa las cartas";
 
+    lock = true;
     clearInterval(timer);
-    setTimeout(()=>{
+    clearTimeout(observeTimeout);
+    clearTimeout(mismatchTimeout);
+    observeTimeout = setTimeout(()=>{
+        if(isGameOver) return;
         render(false);
+        lock = false;
         statusEl.textContent="🎮 Encuentra las parejas";
         timer=setInterval(()=>{
+            if(isGameOver) return;
             time--;
             updateHUD();
             if(time<=0) endGame(false,"⏰ Tiempo agotado");
@@ -221,7 +313,9 @@ function startGame(){
 }
 
 function flip(index,btn){
-    if(lock || deck[index].matched || attempts<=0) return;
+    if(lock || deck[index].matched || attempts<=0 || time<=0) return;
+
+    if(first && first.index === index) return;
 
     btn.textContent=deck[index].emoji;
 
@@ -238,22 +332,24 @@ function flip(index,btn){
         deck[second.index].matched=true;
 
         matches++;
-        attempts++;
         updateHUD();
         resetTurn();
 
         if(matches===EMOJIS.length){
-            endGame(true,"🏆 Ganaste");
+            setTimeout(()=>{ endGame(true,"🏆 Ganaste"); }, 300);
         }
     } else {
         attempts--;
         updateHUD();
-        setTimeout(()=>{
-            btn.textContent="🂠";
-            resetTurn();
+        mismatchTimeout = setTimeout(()=>{
+            if (!isGameOver) {
+                if (first && first.btn) first.btn.textContent="🂠";
+                if (btn) btn.textContent="🂠";
+                resetTurn();
 
-            if(attempts<=0){
-                endGame(false,"💀 Sin intentos");
+                if(attempts<=0){
+                    endGame(false,"💀 Sin intentos");
+                }
             }
         },700);
     }
@@ -262,30 +358,83 @@ function flip(index,btn){
 function resetTurn(){
     first=null;
     second=null;
-    lock=false;
+    if(!isGameOver) lock=false;
+}
+
+function saveResult(win, durationSeconds){
+    const levelMap = {
+        "básico": "basico",
+        "medio": "medio",
+        "avanzado": "avanzado"
+    };
+
+    const body = new URLSearchParams();
+    body.append("level", levelMap[CFG.level.toLowerCase()] || CFG.level.toLowerCase());
+    body.append("win", win.toString());
+    body.append("duration", durationSeconds.toString());
+
+    fetch("{% url 'save_result' %}", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": document.querySelector('meta[name="csrf-token"]').content,
+            "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: body.toString(),
+    }).catch((error) => console.error("Error guardando resultado:", error));
 }
 
 function endGame(win,msg){
-
+    if(isGameOver) return;
+    isGameOver = true;
+    lock = true;
     clearInterval(timer);
+    clearTimeout(mismatchTimeout);
+    clearTimeout(observeTimeout);
     statusEl.textContent=msg;
-    startBtn.textContent="JUGAR DE NUEVO";
 
+    const elapsed = CFG.timeLimit - time;
     const lvl = getNivel();
 
+    const titleEl = document.getElementById("endGameTitle");
+    const msgEl = document.getElementById("endGameMessage");
+
     if(win){
-        playAudio(sounds[lvl].win);
+        playAudio(sounds[lvl].win, false);
+        titleEl.textContent = "🏆 ¡VICTORIA!";
+        titleEl.className = "win-text";
+        msgEl.innerHTML = `Completaste el nivel en <strong>${elapsed}s</strong>.`;
     } else {
-        playAudio(sounds[lvl].lose);
+        playAudio(sounds[lvl].lose, false);
+        titleEl.textContent = "💀 FIN DEL JUEGO";
+        titleEl.className = "lose-text";
+        msgEl.innerHTML = msg;
     }
+
+    saveResult(win, elapsed);
+
+    const modal = document.getElementById("endGameModal");
+    modal.classList.add("show");
 }
 
 startBtn.onclick = ()=>{
     startGame();
 };
 
+document.getElementById("modalStartBtn").onclick = (e) => {
+    e.target.disabled = true;
+    document.getElementById("endGameModal").classList.remove("show");
+    setTimeout(() => {
+        e.target.disabled = false;
+        startGame();
+    }, 400); 
+}
+
 updateHUD();
-statusEl.textContent="Presiona INICIAR PARTIDA";
+statusEl.textContent="Iniciando...";
+
+window.onload = () => {
+    startGame();
+};
 
 </script>
 

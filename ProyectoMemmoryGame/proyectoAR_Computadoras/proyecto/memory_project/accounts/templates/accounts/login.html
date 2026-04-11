@@ -1,4 +1,5 @@
 <!doctype html>
+{% load static %}
 <html lang="es">
 <head>
   <meta charset="utf-8">
@@ -31,45 +32,14 @@
       font-family: "Press Start 2P", "Verdana", "Segoe UI", system-ui, sans-serif;
     }
 
-    /* Grid retro al fondo */
-    body::before{
-      content:"";
-      position:fixed;
-      inset:0;
-      background:
-        linear-gradient(rgba(0,245,255,.10) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,245,255,.08) 1px, transparent 1px);
-      background-size: 40px 40px;
-      mask-image: radial-gradient(circle at center, black 35%, transparent 75%);
-      pointer-events:none;
-      opacity:.55;
-    }
-
-    .arcade-card{
+    .vc-card{
       width:100%;
       max-width:460px;
       padding:28px 26px;
       border-radius:18px;
-      background: rgba(0,0,0,.55);
-      border:1px solid rgba(255,255,255,.10);
-      box-shadow:
-        0 0 18px rgba(0,245,255,.25),
-        0 0 38px rgba(255,44,223,.18);
-      backdrop-filter: blur(10px);
-      position:relative;
-      overflow:hidden;
-    }
-
-    /* Borde glow */
-    .arcade-card::after{
-      content:"";
-      position:absolute;
-      inset:-2px;
-      border-radius:20px;
-      background: linear-gradient(90deg, var(--cyan), var(--pink), var(--yellow), var(--purple), var(--cyan));
-      filter: blur(14px);
-      opacity:.35;
-      z-index:-1;
+      background:rgba(10,10,20,0.55);
+      backdrop-filter:blur(12px);
+      border:1px solid rgba(255,255,255,0.14);
     }
 
     .title{
@@ -106,16 +76,17 @@
       color:var(--text);
     }
 
-    .btn-arcade{
-      font-family: system-ui, sans-serif;
-      font-weight:800;
+    .btn-vc{
+      font-family: "Segoe UI", sans-serif;
+      font-weight:900;
       border:none;
-      background: linear-gradient(90deg, var(--cyan), var(--pink));
       color:#071018;
+      border-radius:8px;
+      background:linear-gradient(90deg,#00F5FF,#FF2CDF);
       padding:12px 14px;
-      box-shadow: 0 0 18px rgba(0,245,255,.18);
+      transition: opacity .3s;
     }
-    .btn-arcade:hover{ opacity:.95; }
+    .btn-vc:hover{ opacity:.9; }
 
     .link{
       color:var(--cyan);
@@ -139,7 +110,7 @@
 </head>
 
 <body>
-  <div class="arcade-card">
+  <div class="vc-card">
     <h1 class="title">🕹️ MEMORY GAME</h1>
     <p class="subtitle">Inicia sesión para comenzar</p>
 
@@ -162,7 +133,7 @@
         <input class="form-control" type="password" name="password" placeholder="••••••••" required>
       </div>
 
-      <button class="btn btn-arcade w-100">ENTRAR</button>
+      <button class="btn btn-vc w-100">ENTRAR</button>
     </form>
 
     <div class="footer-note">
@@ -170,5 +141,22 @@
       <a class="link" href="{% url 'register' %}">Regístrate</a>
     </div>
   </div>
+
+  <audio id="bgMusic" loop>
+    <source src="{% static 'sounds/fondonormal.mp3' %}" type="audio/mpeg">
+  </audio>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const bgMusic = document.getElementById('bgMusic');
+      bgMusic.volume = 0.3;
+      let playPromise = bgMusic.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(e => {
+          console.warn("Autoplay bloqueado por el navegador", e);
+        });
+      }
+    });
+  </script>
 </body>
 </html>
