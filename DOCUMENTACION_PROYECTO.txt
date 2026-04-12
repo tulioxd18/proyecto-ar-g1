@@ -1,0 +1,231 @@
+DOCUMENTACIÓN DEL PROYECTO - proyecto-g1
+
+Resumen general
+----------------
+Este proyecto es una aplicación web construida con Django. Es un "Memory Game" con dos apps principales:
+- `accounts`: manejo de autenticación (login, registro, logout).
+- `memory_game`: lógica del juego, guardado de resultados y perfil del usuario.
+
+En la raíz del proyecto Django se encuentran los módulos de configuración y arranque estándar: `manage.py`, el paquete `memory_project` con `settings.py`, `urls.py`, `wsgi.py`, `asgi.py`, y las apps mencionadas.
+
+Cómo ejecutar (resumen)
+-----------------------
+1. Crear y activar un entorno virtual (ya existe la carpeta `env/` en el repositorio, pero normalmente: `python -m venv env` y activar).
+2. Instalar dependencias: `pip install -r requirements.txt`.
+3. Migraciones: `python manage.py migrate`.
+4. Crear superusuario si es necesario: `python manage.py createsuperuser`.
+5. Ejecutar servidor: `python manage.py runserver`.
+
+Notas: `DEBUG` en `settings.py` está en `False` por defecto en el archivo provisto; para desarrollo cambiar a `True`.
+
+Estructura de archivos y explicación (archivos principales)
+---------------------------------------------------------
+A continuación se listan los archivos del proyecto (no se documentan las librerías instaladas dentro de `env/`) con una breve explicación de su propósito, las líneas clave y cómo se usan.
+
+1) `manage.py`
+- Propósito: utilidad de línea de comandos de Django para administración (migraciones, runserver, etc.).
+- Líneas clave:
+  - `os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'memory_project.settings')` -> indica a Django qué archivo de configuración usar.
+  - `execute_from_command_line(sys.argv)` -> ejecuta el comando pasado desde la CLI.
+- Uso: ejecutar comandos Django desde la raíz del proyecto.
+
+2) `memory_project/settings.py`
+- Propósito: configuración central del proyecto Django.
+- Líneas clave y explicación:
+  - `BASE_DIR = Path(__file__).resolve().parent.parent` -> ruta base del proyecto para construir rutas relativas.
+  - `SECRET_KEY = '...'` -> clave secreta (no exponerla en producción). Mantener en variables de entorno.
+  - `DEBUG = False` -> modo debug (activar en desarrollo).
+  - `ALLOWED_HOSTS = [...]` -> hosts permitidos para servir la app en producción.
+  - `INSTALLED_APPS` -> lista de apps activas, incluye `accounts` y `memory_game`.
+  - `MIDDLEWARE` -> middlewares cargados; incluye `whitenoise` para servir archivos estáticos en producción.
+  - `DATABASES` -> configuración de sqlite3 local: `BASE_DIR / 'db.sqlite3'`.
+  - `STATIC_URL` y `STATIC_ROOT` -> configuración de archivos estáticos.
+- Uso: ajustar según entorno (producción/desarrollo) y variables de entorno.
+
+3) `memory_project/urls.py`
+- Propósito: enrutamiento principal del proyecto.
+- Líneas clave:
+  - `path('admin/', admin.site.urls)` -> panel de administración.
+  - `path('accounts/', include('accounts.urls'))` -> URLs de la app `accounts` (login/register/logout).
+  - `path('', include('memory_game.urls'))` -> URLs de la app principal del juego.
+- Uso: agregar rutas globales o incluir otras apps.
+
+4) `memory_project/asgi.py` y `memory_project/wsgi.py` (no se listan en detalle aquí)
+- Propósito: puntos de entrada para servidores ASGI/WSGI en despliegue.
+- Uso: configuración por defecto para servir la app en plataformas compatibles.
+
+5) `accounts/urls.py`
+- Propósito: define rutas de autenticación de usuarios.
+- Líneas principales:
+  - `path('login/', views.login_view, name='login')`
+  - `path('register/', views.register_view, name='register')`
+  - `path('logout/', views.logout_view, name='logout')`
+- Uso: URLs accesibles desde templates o redirecciones.
+
+6) `accounts/views.py`
+- Propósito: controladores (views) para login, registro y logout.
+- Funciones clave y explicación:
+  - `login_view(request)`:
+    - Si el usuario está autenticado redirige a `select_level`.
+    - En POST obtiene `username` y `password`, usa `authenticate` para validar.
+    - Si `authenticate` devuelve un usuario, ejecuta `login(request, user)` y redirige; si no, muestra mensajes de error.
+    - Nota: incluye una comprobación `User.objects.filter(username=username).exists()` para distinguir entre "usuario no existe" y "contraseña incorrecta".
+  - `register_view(request)`:
+    - Si usuario autenticado redirige.
+    - En POST crea `RegisterForm` y, si válido, guarda usuario, hace login automático y redirige.
+    - En GET renderiza el formulario vacío.
+  - `logout_view(request)`:
+    - Protegida con `@login_required`; llama a `logout(request)` y redirige a `login`.
+- Uso: estos métodos son llamados por las rutas en `accounts/urls.py` y muestran templates en `accounts/templates/accounts/`.
+
+7) `accounts/forms.py`
+- Propósito: formulario de registro para crear usuarios.
+- Código clave:
+  - `class RegisterForm(UserCreationForm): email = forms.EmailField(required=True)` -> extiende `UserCreationForm` agregando el campo email y define `Meta` con campos `['username', 'email', 'password1', 'password2']`.
+- Uso: validación y creación de usuario desde `register_view`.
+
+8) `accounts/models.py`
+- Actualmente solo contiene `from django.db import models` y un comentario; no hay modelos personalizados.
+- Uso: archivo listo para ampliaciones si se necesitan modelos adicionales relacionados con cuentas.
+
+9) `accounts/templates/accounts/login.html` (template)
+- Propósito: formulario de inicio de sesión con estilos CSS embebidos y una pequeña lógica JavaScript para reproducir música de fondo.
+- Líneas y comportamiento clave:
+  - Formulario HTML con `method="post"` y `{% csrf_token %}` para seguridad CSRF.
+  - Campos: `username` y `password`.
+  - Muestra `messages` (mensajes de Django) para errores.
+  - Reproducción de audio en bucle `fondonormal.mp3` colocado en `static/sounds/`.
+  - Estilos CSS incluidos en el propio template para diseño visual del login.
+- Uso: mostrado por `login_view`.
+
+10) `accounts/templates/accounts/register.html` (template)
+- Propósito: formulario de registro para crear nueva cuenta de usuario.
+- Líneas y comportamiento clave:
+  - Usa `{{ form.username }}`, `{{ form.email }}`, `{{ form.password1 }}`, `{{ form.password2 }}` para renderizar los campos.
+  - Incluye validación de errores `{{ form.errors }}`.
+  - Igual que login, reproduce audio de fondo y aplica estilos.
+- Uso: mostrado por `register_view`.
+
+11) `memory_game/urls.py`
+- Propósito: rutas específicas del juego.
+- Rutas principales:
+  - `''` -> `select_level` (pantalla para elegir nivel).
+  - `'play/basico/'`, `'play/medio/'`, `'play/avanzado/'` -> vistas `play_basic`, `play_medium`, `play_hard`.
+  - `'save_result/'` -> `save_result` (POST para guardar estadísticas del juego).
+  - `'perfil/'` -> `profile` (muestra estadísticas del usuario).
+- Uso: incluidas desde `memory_project/urls.py`.
+
+12) `memory_game/models.py`
+- Contiene el modelo `GameRecord` con campos:
+  - `user` -> FK a `django.contrib.auth.models.User`, `related_name='game_records'`.
+  - `level` -> `CharField` con `LEVEL_CHOICES` ("basico", "medio", "avanzado").
+  - `win` -> Booleano si el jugador ganó.
+  - `duration_seconds` -> duración en segundos.
+  - `created_at` -> fecha/hora de creación (`auto_now_add=True`).
+- Método `__str__` devuelve: `"{user} - {nivel_display} - Win/Loss"`.
+- Uso: persistencia de cada partida para análisis y perfil.
+
+13) `memory_game/views.py`
+- Funciones y responsabilidades:
+  - `@login_required def select_level(request)` -> renderiza `memory_game/select_level.html`.
+  - `play_basic`, `play_medium`, `play_hard` -> renderizan `memory_game/game.html` con `context` que define `level_name`, `attempts`, `time_limit`, `grid_size`. Estos valores configuran la experiencia del juego en el frontend.
+  - `save_result(request)` -> espera `POST` con `level`, `win`, `duration`. Valida y convierte `duration` a entero y crea `GameRecord` en la BD usando `GameRecord.objects.create(...)`. Devuelve `JsonResponse({'status': 'ok'})`.
+  - `profile(request)` -> consulta los `game_records` del usuario, calcula totales (juegos, victorias, derrotas), `average_time` (agregación `Avg`), determina `favorite_level` usando `Count` y `annotate`, crea `level_counts` y pasa todo al template `memory_game/profile.html`.
+- Uso: lógica de backend para almacenar resultados, mostrar la UI adecuada y calcular estadísticas.
+
+14) Plantillas del juego (referenciadas por las vistas)
+- `memory_game/game.html` y `memory_game/select_level.html`, `memory_game/profile.html` son renderizadas por las views; no se listaron explícitamente en el escaneo, pero las vistas las esperan. Deben existir en `memory_game/templates/memory_game/`.
+- `game.html` recibe `context` con `level_name`, `attempts`, `time_limit`, `grid_size` y se usa en el frontend JS para controlar la partida.
+
+15) `memory_project/Dockerfile`
+- Presente en el proyecto raíz de la app `memory_project` (archivo `Dockerfile` listado). Probablemente usado para desplegar en contenedor; revisar contenido si se desea dockerizar.
+
+16) `db.sqlite3`
+- Base de datos SQLite incluida en el repositorio (archivo binario). En general no se recomienda incluir la DB en el control de versiones; mejor regenerarla con migraciones.
+
+17) `requirements.txt` (varios niveles)
+- Contiene dependencias del proyecto. Usar para instalar paquetes necesarios.
+
+Recomendaciones y notas sobre seguridad / despliegue
+---------------------------------------------------
+- Mover `SECRET_KEY` a variable de entorno y no mantenerla en el repositorio.
+- Poner `DEBUG = False` en producción (ya está False) y configurar `ALLOWED_HOSTS` correctamente.
+- El archivo `db.sqlite3` no debería ser versionado si contiene datos reales; añadirlo a `.gitignore` y usar migraciones para crear la DB.
+- Revisar el contenido de `requirements.txt` y actualizaciones de paquetes antes de desplegar.
+
+Siguientes pasos sugeridos
+-------------------------
+Listado de archivos y carpetas del proyecto
+-------------------------------------------
+Nota: se muestra la estructura relevante del repositorio con las carpetas y archivos principales.
+
+Raíz del workspace (ruta base):
+ - README.md
+ - DOCUMENTACION_PROYECTO.txt
+ - DOCUMENTACION_DETALLADA_LINEA_POR_LINEA.txt
+ - launcher.py
+ - docker-compose.yml
+ - requirements.txt
+ - .vscode/ (carpeta)
+     - launch.json
+ - env/ (entorno virtual -- contiene Python y paquetes instalados)
+     - Scripts/ (activadores, python.exe)
+     - Lib/ (site-packages con dependencias)
+
+Carpeta del proyecto Django:
+ - ProyectoMemmoryGame/
+     - proyectoAR_Computadoras/
+         - proyecto/
+             - memory_project/  <-- proyecto Django principal
+                 - manage.py
+                 - Dockerfile
+                 - db.sqlite3
+                 - requirements.txt
+                 - staticfiles/ (archivos estáticos recopilados)
+                 - asgi.py
+                 - wsgi.py
+                 - settings.py
+                 - urls.py
+                 - __init__.py
+                 - accounts/  (app de autenticación)
+                     - __init__.py
+                     - admin.py
+                     - apps.py
+                     - forms.py
+                     - models.py
+                     - tests.py
+                     - urls.py
+                     - views.py
+                     - migrations/
+                         - __init__.py
+                         - (archivos de migración .py)
+                     - templates/
+                         - accounts/
+                             - login.html
+                             - register.html
+                 - memory_game/  (app del juego)
+                     - __init__.py
+                     - admin.py
+                     - apps.py
+                     - models.py
+                     - views.py
+                     - tests.py
+                     - urls.py
+                     - migrations/
+                         - 0001_initial.py
+                         - __pycache__/
+                     - templates/
+                         - memory_game/
+                             - game.html (esperado)
+                             - select_level.html (esperado)
+                             - profile.html (esperado)
+
+Otras carpetas y archivos relevantes encontrados en el workspace:
+ - .vscode/
+     - launch.json (configuraciones para ejecutar Django y tests desde VS Code)
+ - docker-compose.yml (orquesta el servicio Docker 'web' que apunta al Dockerfile del proyecto)
+
+Notas sobre el entorno virtual `env/`:
+ - Contiene Python y todos los paquetes instalados (site-packages). No se listan todos los paquetes aquí para mantener la claridad.
+ - Dentro de `env\Lib\site-packages` encontrarás paquetes como `django`, `pip`, `setuptools`, `whitenoise`, entre otros.
+

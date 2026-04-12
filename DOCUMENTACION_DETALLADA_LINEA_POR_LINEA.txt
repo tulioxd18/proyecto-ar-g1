@@ -1,0 +1,250 @@
+DOCUMENTACIÓN DETALLADA (línea por línea) - proyecto-g1
+
+Objetivo del documento
+----------------------
+Explicación sencilla, paso a paso y "línea por línea" de los archivos principales del proyecto. Está escrita para alguien que NO sabe programar: se explica qué hace cada parte y por qué importa.
+
+Estructura y cómo leer este documento
+------------------------------------
+- Cada sección corresponde a un archivo del proyecto.
+- Para cada archivo se muestra el camino (ruta) y después se explica cada bloque o línea importante con un lenguaje sencillo.
+- No se incluye el contenido completo de archivos grandes; se explican las líneas y fragmentos esenciales.
+
+1) Archivo: `manage.py`
+Ruta: `ProyectoMemmoryGame\proyectoAR_Computadoras\proyecto\memory_project\manage.py`
+Propósito general: este archivo permite ejecutar tareas de administración del proyecto (iniciar el servidor web, aplicar cambios a la base de datos, crear usuarios, etc.).
+
+(línea por línea o por bloques):
+- Primera línea (shebang): `#!/usr/bin/env python`
+  - Qué significa: le dice al sistema que este archivo debería ejecutarse con Python.
+  - Por qué importa: facilita iniciar el proyecto usando comandos.
+
+- Comentario: `"""Django's command-line utility for administrative tasks."""`
+  - Qué significa: es una nota que explica para qué sirve el archivo.
+
+- `import os` y `import sys`
+  - Qué hacen: traen herramientas que permiten trabajar con el sistema operativa (carpetas, variables) y con lo que escribes en la consola.
+
+- `def main():` ...
+  - Bloque que prepara el entorno para ejecutar comandos de Django (por ejemplo, iniciar servidor).
+  - `os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'memory_project.settings')`
+    - Qué hace: le dice a Django dónde está la configuración del proyecto (archivo `settings.py`).
+  - `from django.core.management import execute_from_command_line`
+    - Qué hace: trae la función que ejecuta los comandos desde la consola.
+  - `execute_from_command_line(sys.argv)`
+    - Qué hace: ejecuta la acción que le indiques en la consola (como `runserver` para iniciar la aplicación).
+
+- `if __name__ == '__main__': main()`
+  - Qué hace: permite ejecutar `main()` cuando ejecutas este archivo directamente.
+
+Cómo usar  este archivo:
+- Desde la consola puedes escribir `python manage.py runserver` para iniciar la aplicación y verla en tu navegador.
+
+
+2) Archivo: `memory_project/settings.py`
+Ruta: `...\memory_project\settings.py`
+Propósito general: contiene todas las configuraciones del proyecto (ej. contraseñas secretas, en qué dirección corre, base de datos, qué partes del sistema están activas).
+
+Explicación por bloques:
+- Comentarios de cabecera
+  - Explican que este archivo fue generado automáticamente por Django y dónde encontrar más información.
+
+- `from pathlib import Path` y `BASE_DIR = Path(__file__).resolve().parent.parent`
+  - Qué hacen: `BASE_DIR` es una variable que guarda la carpeta principal del proyecto. Se usa para crear rutas a archivos sin tener que escribir caminos largos.
+
+- `SECRET_KEY = '...secret...'`
+  - Qué significa: es una cadena privada que Django usa para proteger cosas importantes (como sesiones y contraseñas temporales).
+  - Nota para no programadores: no compartas este valor públicamente (como en GitHub) en proyectos reales.
+
+- `DEBUG = False`
+  - Qué hace: determina si el proyecto mostrará mensajes de error detallados. En desarrollo (cuando se construye) se suele poner `True`; en producción se debe poner `False`.
+
+- `ALLOWED_HOSTS = [...]`
+  - Qué hace: lista de direcciones desde las cuales tu aplicación aceptará conexiones. Evita accesos no deseados.
+
+- `INSTALLED_APPS = [...]`
+  - Qué contiene: las partes del proyecto que están activas. Aquí aparecen `accounts` (gestión de usuarios) y `memory_game` (la aplicación del juego).
+
+- `MIDDLEWARE = [...]`
+  - Qué es: son capas intermedias que procesan las peticiones antes de llegar a tu código (por ejemplo, para seguridad o sesiones).
+  - Nota visual: `whitenoise.middleware.WhiteNoiseMiddleware` está incluido para facilitar servir archivos (imágenes, CSS) en producción.
+
+- `ROOT_URLCONF = 'memory_project.urls'`
+  - Qué indica: el archivo responsable de definir las direcciones (rutas) que se usan en el proyecto.
+
+- `TEMPLATES = [...]`
+  - Qué gestiona: cómo se procesan las plantillas HTML (páginas que muestran datos al usuario).
+
+- `DATABASES = { 'default': { 'ENGINE': 'django.db.backends.sqlite3', 'NAME': BASE_DIR / 'db.sqlite3' }}`
+  - Qué hace: configura la base de datos. Aquí se usa SQLite (archivo pequeño `db.sqlite3`) para guardar usuarios y resultados de juego.
+
+- `AUTH_PASSWORD_VALIDATORS = [...]`
+  - Qué hacen: reglas que obligan a que las contraseñas sean seguras (por ejemplo que no sean muy cortas).
+
+- `STATIC_URL` y `STATIC_ROOT`
+  - Qué son: configuración para archivos estáticos (imágenes, JavaScript y CSS). `STATIC_ROOT` indica dónde se recopilan para producción.
+
+Consejos: en un despliegue real, el `SECRET_KEY` debería guardarse fuera del proyecto, en una variable de entorno, y `DEBUG` debería ser `False`.
+
+
+3) Archivo: `memory_project/urls.py`
+Ruta: `...\memory_project\urls.py`
+Propósito: define las direcciones / URLs que la aplicación responde.
+
+Líneas importantes y su explicación sencilla:
+- `from django.contrib import admin` y `from django.urls import path, include`
+  - Importan herramientas para definir direcciones.
+
+- `urlpatterns = [ path('admin/', admin.site.urls), path('accounts/', include('accounts.urls')), path('', include('memory_game.urls')), ]`
+  - Qué hace: cuando el navegador visita `.../admin/` se muestra la interfaz administrativa; `.../accounts/` usan las rutas definidas en la app `accounts`; la raíz `.../` usa las rutas de `memory_game`.
+
+Cómo lo usa un usuario: si visitas `http://localhost:8000/` verás la página principal del juego. `http://localhost:8000/admin/` es la administración (solo para administradores).
+
+
+4) Carpeta: `accounts` (módulo para cuentas de usuario)
+Archivos principales: `urls.py`, `views.py`, `forms.py`, `models.py`, plantillas en `templates/accounts/`.
+
+4.1) `accounts/urls.py`
+- Define rutas específicas para iniciar sesión, registrarse y cerrar sesión.
+  - `path('login/', views.login_view, name='login')` -> dirección para iniciar sesión.
+  - `path('register/', views.register_view, name='register')` -> registro.
+  - `path('logout/', views.logout_view, name='logout')` -> cerrar sesión.
+
+4.2) `accounts/forms.py`
+- Contiene `RegisterForm` que amplía un formulario de Django para incluir correo electrónico.
+- Explicación sencilla: es la "plantilla" que pide los datos cuando alguien quiere crear una cuenta: usuario, email y contraseña.
+
+4.3) `accounts/views.py` (explicación detallada de flujo)
+Ruta: `accounts/views.py`
+- Encargado de recibir lo que envía el navegador (formularios) y decidir qué responder.
+
+Funciones (qué hacen y cómo):
+- `login_view(request)`:
+  - Si el usuario ya está conectado, lo envía a la pantalla de selección de nivel para jugar.
+  - Si llega información por POST (cuando se pulsa el botón de "Entrar"), toma los campos `username` y `password` y los prueba.
+  - Usa `authenticate(request, username, password)` para comprobar si el usuario existe y la contraseña es correcta.
+  - Si es correcto, llama a `login(request, user)` para recordar que ese navegador está conectado con ese usuario.
+  - Si no, muestra mensajes que explican si el usuario no existe o si la contraseña es incorrecta.
+
+- `register_view(request)`:
+  - Si llega por POST, toma los datos del formulario `RegisterForm`.
+  - Si el formulario es válido, crea la cuenta (guarda el usuario) y hace login automático para que comience a jugar.
+  - Si hay errores, muestra mensajes explicando qué está mal (por ejemplo, contraseñas que no coinciden).
+
+- `logout_view(request)`:
+  - Cierra la sesión del usuario y lo envía a la pantalla de login.
+
+Por qué es útil para alguien sin conocimientos técnicos:
+- Estas vistas permiten al usuario crear una cuenta, iniciar sesión y mantener la sesión (no necesita escribir datos otra vez hasta que cierre sesión).
+
+
+5) Carpeta: `memory_game` (lógica del juego)
+Archivos principales: `models.py`, `views.py`, `urls.py`, plantillas en `templates/memory_game/`.
+
+5.1) `memory_game/models.py`
+- Contiene la clase `GameRecord` que define cómo guardamos los resultados de cada partida.
+- Campos y significado para no técnicos:
+  - `user`: el jugador (vinculado a la cuenta de usuario).
+  - `level`: nivel de dificultad jugado (básico, medio, avanzado).
+  - `win`: si ganó o no (verdadero/falso).
+  - `duration_seconds`: cuánto tiempo duró la partida en segundos.
+  - `created_at`: cuándo se jugó (fecha y hora, se pone automáticamente).
+
+Para qué sirve: cada vez que alguien termina una partida, guardamos los datos para poder ver estadísticas después.
+
+5.2) `memory_game/urls.py`
+- Define direcciones que sirven las páginas del juego:
+  - `''` -> pantalla para elegir nivel.
+  - `play/basico/`, `play/medio/`, `play/avanzado/` -> inician el juego en el nivel indicado.
+  - `save_result/` -> URL que recibe los resultados para guardarlos (normalmente llamada por JavaScript del juego cuando termina una partida).
+  - `perfil/` -> muestra el perfil del usuario con estadísticas (cuántas partidas jugadas, victorias, etc.).
+
+5.3) `memory_game/views.py` (explicación por función)
+- `select_level(request)`
+  - Muestra la pantalla donde eliges el nivel para jugar.
+
+- `play_basic(request)`, `play_medium(request)`, `play_hard(request)`
+  - Preparan información para la página del juego: nombre del nivel, número de intentos permitidos, límite de tiempo y tamaño de la cuadrícula.
+  - Ejemplo simple: `play_basic` prepara `level_name: "BÁSICO"`, `attempts: 6`.
+  - El navegador recibe esa información y muestra un juego con esas reglas.
+
+- `save_result(request)`
+  - Espera recibir una petición POST con la información: `level`, `win` (si ganó), `duration` (tiempo que tardó).
+  - Convierte el tiempo a número y crea un registro en la base de datos con `GameRecord.objects.create(...)`.
+  - Devuelve una respuesta en formato JSON con `{ "status": "ok" }` para indicar que todo salió bien.
+  - Nota para usuarios no técnicos: normalmente el propio juego en la página web envía estos datos automáticamente cuando termina la partida.
+
+- `profile(request)`
+  - Busca en la base de datos todos los registros del usuario y calcula:
+    - total de partidas,
+    - total de victorias y derrotas,
+    - tiempo promedio de juego,
+    - nivel favorito (el que más jugó).
+  - Envía estos datos a una página que los muestra de forma amigable.
+
+
+6) Plantillas HTML (páginas que ve el usuario)
+Rutas de ejemplo: `accounts/templates/accounts/login.html`, `accounts/templates/accounts/register.html`, `memory_game/templates/memory_game/game.html` (no listada íntegramente).
+
+Qué son y cómo funcionan (explicación sencilla):
+- Las plantillas son archivos que contienen HTML (el lenguaje de las páginas web). El servidor coloca datos dentro de estas plantillas y luego se envían al navegador para que el usuario las vea.
+- Ejemplos concretos en este proyecto:
+  - `login.html` muestra un formulario con campo Usuario y Contraseña. Cuando pulsas "Entrar", el formulario envía los datos al servidor.
+  - `register.html` muestra el formulario para crear cuenta (Usuario, Correo, Contraseña, Confirmar contraseña).
+  - `game.html` contiene el juego en sí y scripts que controlan la mecánica (tarjetas, tiempo, detección de pares) y que llaman a `save_result/` cuando termina la partida.
+- Importante: las plantillas incluyen `{% csrf_token %}` que es una protección para evitar que sitios maliciosos envíen datos en tu nombre.
+
+
+7) `requirements.txt`
+Qué es: lista de paquetes (programas) que el proyecto necesita para funcionar (por ejemplo Django).
+Cómo lo usa una persona sin conocimientos técnicos:
+- Con el entorno virtual activado, se ejecuta `pip install -r requirements.txt` y el sistema instala las dependencias necesarias automáticamente.
+
+
+8) `db.sqlite3` (base de datos)
+Qué contiene: los datos guardados (usuarios, registros de partidas). Es un archivo único que actúa como una base de datos sencilla.
+Nota: suele mantenerse fuera del control de versiones si contiene datos reales.
+
+
+9) Archivos de configuración adicionales (Dockerfile, archivos en `env/`)
+- `Dockerfile`: instrucciones para crear una imagen de contenedor si deseas ejecutar el proyecto dentro de Docker. No es imprescindible para ejecutar el proyecto localmente.
+- Carpeta `env/`: contiene un entorno virtual instalado. Es mejor no subirla a repositorios públicos, pero aquí está para facilitar reproducir el entorno.
+
+
+10) Pasos prácticos detallados para ejecutar (sin conocimientos técnicos)
+Preparación inicial (solo una vez):
+1. Abre PowerShell en la carpeta raíz del proyecto (por ejemplo la ruta que me diste).
+2. Crear entorno virtual (si no existe): `python -m venv env` (esto crea una carpeta `env` que aísla las librerías).
+3. Activar entorno virtual (cada vez que trabajes en el proyecto):
+   - En PowerShell: `.\.\env\Scripts\Activate.ps1`  (o `.\env\\Scripts\Activate.ps1` según el shell). Si PowerShell bloquea, ejecutar: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force` y luego activar.
+4. Actualizar instalador: `python -m pip install --upgrade pip`
+5. Instalar dependencias: `pip install -r requirements.txt`
+6. Aplicar la base de datos: `python manage.py migrate` (esto crea las tablas necesarias dentro de `db.sqlite3`).
+7. Crear un usuario administrador si quieres acceder a la parte de administración: `python manage.py createsuperuser` (te pedirá correo y contraseña).
+8. Iniciar servidor local: `python manage.py runserver`.
+9. Abrir un navegador y visitar `http://127.0.0.1:8000/` para ver la aplicación.
+
+Qué esperar y cómo probar:
+- Crear una cuenta en la página de registro.
+- Iniciar sesión con esa cuenta.
+- Entrar a "Seleccionar nivel" y jugar.
+- Al terminar, la página guardará el resultado y luego puedes ver tu perfil con estadísticas.
+
+
+11) Preguntas frecuentes para no programadores
+- Q: ¿Necesito instalar algo más aparte de Python?
+  - A: Solo Python y las librerías que se instalan con `pip install -r requirements.txt`.
+- Q: ¿Qué es un entorno virtual?
+  - A: Es una caja aislada donde se instalan las librerías que usa este proyecto, para no mezclar con otros proyectos.
+- Q: ¿Qué es la base de datos `db.sqlite3`?
+  - A: Es un archivo que guarda los usuarios y los resultados de las partidas.
+- Q: ¿Puedo borrar `db.sqlite3`?
+  - A: Sí, si borras y vuelves a ejecutar `python manage.py migrate` se recreará vacío. Pero perderás los datos guardados.
+
+
+12) Recomendaciones y seguridad (en términos sencillos)
+- No compartas el `SECRET_KEY` públicamente.
+- Si vas a subir el proyecto a un servidor público, asegúrate de activar medidas de seguridad y de no usar el modo depuración (`DEBUG = True`).
+- Guarda contraseñas y datos sensibles fuera del código (por ejemplo, en variables de entorno).
+
+
