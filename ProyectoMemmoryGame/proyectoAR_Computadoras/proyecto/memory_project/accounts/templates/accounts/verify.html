@@ -1,0 +1,138 @@
+<!doctype html>
+{% load static %}
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Verificación | Memory Game</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#070A14;
+      --cyan:#00F5FF;
+      --pink:#FF2CDF;
+      --text:#EAF2FF;
+    }
+
+    body{
+      min-height:100vh;
+      margin:0;
+      color:var(--text);
+      background:
+        radial-gradient(circle at 20% 10%, rgba(255,44,223,.18), transparent 45%),
+        radial-gradient(circle at 80% 15%, rgba(0,245,255,.16), transparent 45%),
+        linear-gradient(180deg, #050714 0%, var(--bg) 100%);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-family: "Press Start 2P", "Verdana", system-ui, sans-serif;
+    }
+
+    .vc-card{
+      width:100%;
+      max-width:400px;
+      padding:35px 26px;
+      border-radius:18px;
+      background:rgba(10,10,20,0.55);
+      backdrop-filter:blur(12px);
+      border:1px solid rgba(255,255,255,0.14);
+      text-align: center;
+    }
+
+    .title{
+      font-size:18px;
+      letter-spacing:1px;
+      margin:0 0 10px 0;
+      text-shadow: 0 0 10px rgba(0,245,255,.35);
+    }
+
+    .subtitle{
+      font-family: system-ui, sans-serif;
+      margin:0 0 25px 0;
+      opacity:.75;
+      font-size: 0.95rem;
+    }
+
+    .otp-input{
+      background: rgba(255,255,255,.06);
+      border:2px solid rgba(255,255,255,.2);
+      color: #FFFFFF !important;
+      text-shadow: 0 0 10px rgba(0,245,255,0.8);
+      font-size: 2rem;
+      letter-spacing: 12px;
+      padding:10px;
+      text-align: center;
+      border-radius: 8px;
+      transition: 0.3s;
+      font-family: monospace;
+      font-weight: bold;
+    }
+
+    .otp-input:focus{
+      background: rgba(255,255,255,.08);
+      border-color: var(--cyan);
+      outline: none;
+      box-shadow: 0 0 15px rgba(0,245,255,.2);
+    }
+
+    .btn-vc{
+      font-family: "Segoe UI", sans-serif;
+      font-weight:900;
+      border:none;
+      color:#071018;
+      border-radius:8px;
+      background:linear-gradient(90deg,#00F5FF,#FF2CDF);
+      padding:12px 14px;
+      transition: opacity .3s;
+      margin-top: 20px;
+    }
+    .btn-vc:hover{ opacity:.9; }
+
+    .alert{
+      font-family: system-ui, sans-serif;
+      font-size: 0.9rem;
+    }
+
+  </style>
+</head>
+
+<body>
+  <div class="vc-card">
+    <h1 class="title">🔐 VERIFICACIÓN</h1>
+    <p class="subtitle">Ingresa el código de 4 dígitos enviado a tu correo electrónico</p>
+
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{% if message.tags %}{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}{% else %}info{% endif %} text-center mb-3">
+            {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <input type="text" name="otp" class="form-control otp-input mb-3" maxlength="4" placeholder="••••" required autocomplete="off">
+      <button type="submit" class="btn btn-vc w-100">VERIFICAR CÓDIGO</button>
+    </form>
+  </div>
+
+  <audio id="bgMusic" loop>
+    <source src="{% static 'sounds/fondonormal.mp3' %}" type="audio/mpeg">
+  </audio>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const bgMusic = document.getElementById('bgMusic');
+      bgMusic.volume = 0.3;
+      let playPromise = bgMusic.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(e => {
+          console.warn("Autoplay bloqueado", e);
+        });
+      }
+    });
+  </script>
+</body>
+</html>
