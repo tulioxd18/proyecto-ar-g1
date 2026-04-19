@@ -1,4 +1,4 @@
-# Memory Game (proyecto-g1)
+# Memory Game proyecto-g1
 
 Proyecto web construido con Django que implementa un juego tipo "Memory" con registro de usuarios y estadísticas de partidas.
 
@@ -123,7 +123,3 @@ python manage.py runserver
 ## Recursos adicionales
 - `DOCUMENTACION_PROYECTO.txt` — documentación resumida del proyecto.
 - `DOCUMENTACION_DETALLADA_LINEA_POR_LINEA.txt` — explicación extendida y didáctica, línea por línea para no programadores.
-
-## Contribuir
-Repositorio remoto: `https://github.com/tulioxd18/proyecto-ar-g1`
-
