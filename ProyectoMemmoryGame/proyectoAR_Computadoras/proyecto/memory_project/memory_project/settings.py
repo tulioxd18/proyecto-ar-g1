@@ -128,8 +128,9 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # CONFIGURACIÓN DE CORREO ELECTRÓNICO (SMTP)
 # ==========================================
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.office365.com'
+EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'marcos.amador18@outlook.com' 
-EMAIL_HOST_PASSWORD = 'Amador18'
+EMAIL_HOST_USER = 'amadormarcos498@gmail.com' 
+# Las contraseñas de aplicación de Google van sin espacios
+EMAIL_HOST_PASSWORD = 'vnlziqibhraeqrtn'
