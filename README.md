@@ -60,7 +60,7 @@ pip install -r requirements.txt
 python manage.py migrate
 ```
 
-2. (Opcional) Crear un superusuario para acceder al panel de administración:
+2. Otra opcion es Crear un superusuario para acceder al panel de administración:
 
 ```powershell
 python manage.py createsuperuser
