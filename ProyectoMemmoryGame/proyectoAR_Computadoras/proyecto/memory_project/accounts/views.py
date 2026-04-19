@@ -72,7 +72,7 @@ def register_view(request):
             except Exception as e:
                 # Si falla por configuración, mostramos un aviso y el código para no bloquear al usuario (solo por debug)
                 print(f"Error al enviar correo: {e}")
-                messages.warning(request, f"AVISO DE DESARROLLO: No se pudo enviar el correo SMTP. Tu código es: {otp}")
+                messages.warning(request, f"Ocurrió un error al enviar el correo al usuario. Por favor verifica las credenciales SMTP en settings.py")
 
             return redirect("verify_email")
         else:

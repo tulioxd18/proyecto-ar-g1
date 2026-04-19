@@ -128,9 +128,8 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # CONFIGURACIÓN DE CORREO ELECTRÓNICO (SMTP)
 # ==========================================
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-# He cambiado esto temporalmente a office365 ya que las universidades suelen usar Outlook. Si usan Google, cámbialo a smtp.gmail.com
 EMAIL_HOST = 'smtp.office365.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'mtamador@uth.hn' 
-EMAIL_HOST_PASSWORD = 'Tulio69%'
+EMAIL_HOST_USER = 'marcos.amador18@outlook.com' 
+EMAIL_HOST_PASSWORD = 'Amador18'
