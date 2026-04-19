@@ -25,7 +25,7 @@ def play_basic(request):
 def play_medium(request):
     context = {
         "level_name": "MEDIO",
-        "attempts": 4,
+        "attempts": 6,
         "time_limit": 60,
         "grid_size": 4,
     }
